@@ -1,0 +1,59 @@
+name: Build and release APK
+on:
+  push: { branches: [main, master] }
+  workflow_dispatch:
+permissions: { contents: write }
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    env:
+      VITE_BUILD_NUMBER: ${{ github.run_number }}
+      VITE_GITHUB_REPO: ${{ github.repository }}
+      VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 17 }
+      - uses: android-actions/setup-android@v3
+      - run: npm install
+      - run: npm test            # payout rules must pass before an APK is built
+      - run: npx tsc --noEmit || echo "::warning::TypeScript warnings (build continues)"
+      - run: npx vite build
+      - run: npx cap add android
+      - run: npx cap sync android
+      - name: Stamp version (higher build number = update available)
+        run: |
+          sed -i "s/versionCode [0-9]*/versionCode ${{ github.run_number }}/; s/versionName \"[^\"]*\"/versionName \"1.0.${{ github.run_number }}\"/" android/app/build.gradle
+      - name: Signing key (same key every build, so installed apps can update in place)
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KS_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          if [ -n "$KS_B64" ]; then
+            echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/release.keystore"
+            echo "KS_FILE=$RUNNER_TEMP/release.keystore" >> $GITHUB_ENV; echo "KS_PW=$KS_PASS" >> $GITHUB_ENV; echo "KS_AL=$KS_ALIAS" >> $GITHUB_ENV
+          else
+            echo "No signing secrets set: using the bundled signing/paluwagan-ci.keystore (fine for testing, replace for real use)."
+            echo "KS_FILE=$GITHUB_WORKSPACE/signing/paluwagan-ci.keystore" >> $GITHUB_ENV; echo "KS_PW=paluwagan-ci" >> $GITHUB_ENV; echo "KS_AL=paluwagan" >> $GITHUB_ENV
+          fi
+      - name: Build signed release APK
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease \
+            -Pandroid.injected.signing.store.file="$KS_FILE" -Pandroid.injected.signing.store.password="$KS_PW" \
+            -Pandroid.injected.signing.key.alias="$KS_AL" -Pandroid.injected.signing.key.password="$KS_PW"
+          cp app/build/outputs/apk/release/app-release.apk ../paluwagan.apk
+      - uses: actions/upload-artifact@v4
+        with: { name: paluwagan-apk, path: paluwagan.apk }
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: Paluwagan v1.0.${{ github.run_number }}
+          body: Automatic build ${{ github.run_number }} from ${{ github.sha }}
+          files: paluwagan.apk
+          make_latest: true
