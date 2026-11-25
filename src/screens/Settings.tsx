@@ -7,6 +7,7 @@ import { useApp, Screen } from '../state/AppContext';
 import { can } from '../lib/permissions';
 import { APP_VERSION, DEVELOPER_CREDIT } from '../config';
 import { checkForUpdate, openUrl } from '../lib/updateCheck';
+import { applyLiveUpdate } from '../lib/liveUpdate';
 
 export default function Settings() {
   const { user, snap, go, logout, run, notify, brand } = useApp();
@@ -15,9 +16,10 @@ export default function Settings() {
   const staff = can(user.role, 'member.manage');
   const editTitle = () => { const t = window.prompt('Group / app title', snap.title); if (t && t.trim()) run(r => r.setTitle(t), 'Title updated'); };
   const update = async () => {
+    try { const v = await applyLiveUpdate(true); if (v) return notify(`Updating to v${v}…`); } catch (e: any) { return notify('Update failed: ' + (e.message || 'try again')); }
     const u = await checkForUpdate();
     if (!u) return notify(`You're up to date (v${APP_VERSION}).`);
-    if (window.confirm(`Version ${u.version} is available. Download now?`)) openUrl(u.url);
+    if (window.confirm(`Version ${u.version} needs a quick reinstall. Download now?`)) openUrl(u.url);
   };
   const rows: [typeof Users, string, () => void, boolean][] = [
     [Building2, 'Group Information', editTitle, can(user.role, 'settings.general')],            // Admin only
