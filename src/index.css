@@ -92,3 +92,50 @@
 .login-form button{border:1px solid rgba(255,255,255,.3)}
 img.group-pic{width:80px;height:80px;object-fit:contain;background:transparent;border-radius:0;filter:drop-shadow(0 6px 12px rgba(0,10,60,.5))}
 @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){.card,.member-list,.settings-list,.tabs,.assign,.login-form{background:rgba(10,40,110,.88)}.bottom,.header,.status{background:#05215c}}
+
+/* ---- theme switch UI ---- */
+:root{--donut-hole:rgba(8,30,85,.92)}
+.seg-card{height:auto;display:block;text-align:left}.seg{display:flex;gap:6px;margin-top:8px;background:rgba(255,255,255,.1);border-radius:16px;padding:4px}
+.seg button{flex:1;border:0;border-radius:12px;padding:9px;font-weight:700;font-size:12px;background:transparent;color:inherit;font-family:inherit}
+.seg .on{background:linear-gradient(90deg,#1e87ff,#0850d7);color:#fff;box-shadow:0 4px 14px rgba(0,60,200,.4)}
+
+/* =====================  BLUE & WHITE GLASS (theme = light)  ===================== */
+[data-theme="light"]{--g-fill:rgba(255,255,255,.55);--g-fill-2:rgba(255,255,255,.7);--g-edge:rgba(255,255,255,.9);--g-shadow:0 10px 28px rgba(30,80,170,.18);--donut-hole:#f1f6ff}
+[data-theme="light"] .app{background:#dbe8fb}
+[data-theme="light"] .phone{color:#10244a;background:linear-gradient(165deg,#f2f8ff 0%,#d3e5ff 45%,#e4dcff 78%,#d8f5ee 100%)}
+[data-theme="light"] .phone::before{background:radial-gradient(circle,#3b8cff,transparent 70%);opacity:.5}
+[data-theme="light"] .phone::after{background:radial-gradient(circle,#7fd7ff,#a58bff 50%,transparent 72%);opacity:.45}
+[data-theme="light"] .screen,[data-theme="light"] .screen .card{color:#10244a}
+[data-theme="light"] .screen b,[data-theme="light"] .screen strong,[data-theme="light"] .screen h1,[data-theme="light"] .screen h2,[data-theme="light"] .screen h3{color:#0a2a66}
+[data-theme="light"] .screen small,[data-theme="light"] .screen .muted,[data-theme="light"] .screen p{color:#516a91}
+[data-theme="light"] .screen svg{color:#0a65d8}
+[data-theme="light"] .screen .tabs b,[data-theme="light"] .screen .profile b,[data-theme="light"] .screen .profile strong,[data-theme="light"] .screen .profile p,[data-theme="light"] .screen .profile small,[data-theme="light"] .screen .profile h2,[data-theme="light"] .screen .cycle header,[data-theme="light"] .screen .cycle header small{color:#fff}
+[data-theme="light"] .profile svg,[data-theme="light"] .bottom svg{color:#fff}
+[data-theme="light"] .header{background:rgba(8,95,215,.82);box-shadow:0 6px 20px rgba(10,70,180,.3);border-bottom:1px solid rgba(255,255,255,.4)}
+[data-theme="light"] .bottom{background:rgba(8,80,200,.74);border:1px solid rgba(255,255,255,.55);box-shadow:0 12px 30px rgba(10,60,160,.35),inset 0 1px 0 rgba(255,255,255,.5)}
+[data-theme="light"] .bottom .selected{background:rgba(255,255,255,.28)}
+[data-theme="light"] .card,[data-theme="light"] .member-list,[data-theme="light"] .settings-list,[data-theme="light"] .tabs,[data-theme="light"] .note,[data-theme="light"] .assign{background:var(--g-fill);border:1px solid var(--g-edge);box-shadow:var(--g-shadow),inset 0 1px 0 rgba(255,255,255,.95)}
+[data-theme="light"] .member-list{background:var(--g-fill-2)}
+[data-theme="light"] .tabs{background:rgba(255,255,255,.5);color:#142e59}
+[data-theme="light"] .profile{background:linear-gradient(135deg,rgba(10,125,230,.85),rgba(6,58,145,.85));border:1px solid rgba(255,255,255,.7)}
+[data-theme="light"] .cycle header{background:linear-gradient(100deg,rgba(8,120,232,.9),rgba(7,82,183,.9))}
+[data-theme="light"] .reminder,[data-theme="light"] .rotation,[data-theme="light"] .info{background:rgba(255,255,255,.55)}
+[data-theme="light"] .note{background:rgba(214,232,255,.7);color:#0b4aa8}[data-theme="light"] .note.warn{background:rgba(255,238,205,.8);color:#8a4b00}[data-theme="light"] .note.bad{background:rgba(255,224,224,.8);color:#b42318}
+[data-theme="light"] .pill{background:rgba(199,244,216,.9);color:#087b3b;border-color:rgba(255,255,255,.9)}
+[data-theme="light"] .pill.blue{background:rgba(213,232,255,.95);color:#0b4aa8}[data-theme="light"] .pill.orange{background:rgba(255,228,199,.95);color:#8a4b00}
+[data-theme="light"] .mini-avatar,[data-theme="light"] .avatar{background:rgba(255,255,255,.8);border-color:#fff}
+[data-theme="light"] .progress{background:rgba(255,255,255,.7)}
+[data-theme="light"] .btn.ghost{background:rgba(255,255,255,.65);color:#0b4aa8}
+[data-theme="light"] .btn.danger,[data-theme="light"] .archive-btn,[data-theme="light"] .logout{background:rgba(255,226,226,.8);color:#b42318;border:1px solid rgba(240,150,150,.7)}
+[data-theme="light"] .fld input,[data-theme="light"] .fld select,[data-theme="light"] .screen select,[data-theme="light"] .assign select{background:rgba(255,255,255,.75);color:#10244a;color-scheme:light;border:1px solid rgba(180,205,240,.9)}
+[data-theme="light"] .period select{background:transparent;border:0;color:#0a2a66}
+[data-theme="light"] ::placeholder{color:#7d93b5}
+[data-theme="light"] .assign-row,[data-theme="light"] .member,[data-theme="light"] .setting-row,[data-theme="light"] .l,[data-theme="light"] .activity{border-color:rgba(20,70,160,.1)}
+[data-theme="light"] .seg{background:rgba(255,255,255,.6)}
+[data-theme="light"] .login{background:linear-gradient(165deg,#2f7fe8 0%,#7aa2ff 45%,#cfe0ff 78%,#f4f8ff 100%)}
+[data-theme="light"] .login-hero{background:radial-gradient(circle at 50% 42%,rgba(255,255,255,.55),transparent 62%)}
+[data-theme="light"] .login-form{color:#10244a;background:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.9)}
+[data-theme="light"] .login-form label,[data-theme="light"] .roles div{background:rgba(255,255,255,.75);border:1px solid rgba(255,255,255,.95);color:#10244a}
+[data-theme="light"] .login-form input{color:#10244a}[data-theme="light"] .login-form svg{color:#0a65d8}
+[data-theme="light"] .login-form b,[data-theme="light"] .login-form small{color:#0a2a66}[data-theme="light"] .login-form a,[data-theme="light"] .login-form .or,[data-theme="light"] .login-form footer{color:#2b4a7d}
+[data-theme="light"] .roles div.on{background:rgba(190,220,255,.95);outline:2px solid #1a73e8}

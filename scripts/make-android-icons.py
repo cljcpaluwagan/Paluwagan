@@ -46,3 +46,11 @@ for root, _, files in os.walk(RES):                      # splash screens
         if f == 'splash.png':
             p = os.path.join(root, f); w, h = Image.open(p).size; splash(w, h).save(p); n += 1
 print(f'Wrote {n} icon/splash images and adaptive-icon XML')
+import re
+mf = os.path.join(os.path.dirname(RES), 'AndroidManifest.xml')
+if os.path.exists(mf):
+    t = open(mf, encoding='utf-8').read(); print('Manifest icon attributes:', re.findall(r'android:(?:icon|roundIcon)="[^"]+"', t))
+    t2 = re.sub(r'android:icon="[^"]+"', 'android:icon="@mipmap/ic_launcher"', t); t2 = re.sub(r'android:roundIcon="[^"]+"', 'android:roundIcon="@mipmap/ic_launcher_round"', t2)
+    if t2 != t: open(mf, 'w', encoding='utf-8').write(t2); print('Fixed manifest icon attributes')
+for d in ('drawable', 'drawable-v24'):
+    q = os.path.join(RES, d); print(d, 'still has:', [f for f in os.listdir(q) if 'launcher' in f] if os.path.isdir(q) else 'n/a')

@@ -23,7 +23,6 @@ export default function Login() {
   };
   return (
     <section className="phone login" style={brand.bg ? { backgroundImage: `linear-gradient(rgba(3,10,35,.55),rgba(3,10,35,.74)), url(${brand.bg})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}>
-      <div className="status"><b>9:41</b><span>▮▮ ◖ ▰</span></div>
       <div className="login-hero"><img className="login-logo" src={brand.logo || logo} alt="Paluwagan" /></div>
       <div className="login-form">
         <label><UserRound /><input placeholder={DEMO_MODE ? 'Demo mode: just pick a role' : 'Email or Username'} value={email} onChange={e => setEmail(e.target.value)} disabled={DEMO_MODE} autoCapitalize="none" /></label>

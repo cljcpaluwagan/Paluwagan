@@ -2,7 +2,6 @@ import React from 'react';
 import { Home, Repeat2, ChartNoAxesColumn, Settings, Menu, Bell, ArrowLeft, House } from 'lucide-react';
 import { useApp, Screen } from '../state/AppContext';
 
-export function StatusBar() { return <div className="status"><b>9:41</b><span>▮▮ ◖ ▰</span></div>; }
 export function Header({ title, back = false, right = 'bell' }: { title: string; back?: boolean; right?: string }) {
   const { back: goBack, go } = useApp();
   const target: Screen = right === 'home' ? 'home' : right === 'settings' ? 'settings' : 'messages';
@@ -26,7 +25,7 @@ export function Phone({ children, title, active = 0, back = false, right }: { ch
   const { toast, busy, brand } = useApp();
   return (
     <section className="phone" style={brand.bg ? { backgroundImage: `linear-gradient(rgba(3,10,35,.55),rgba(3,10,35,.74)), url(${brand.bg})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}>
-      <StatusBar /><Header title={title} back={back} right={right} />
+      <Header title={title} back={back} right={right} />
       <main className="screen">{children}</main>
       {(toast || busy) && <div className="toast">{busy ? 'Working…' : toast}</div>}
       <BottomNav active={active} />
