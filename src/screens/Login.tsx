@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { HandHeart, UserRound, LockKeyhole, Eye } from 'lucide-react';
+import { UserRound, LockKeyhole, Eye } from 'lucide-react';
+import logo from '../assets/logo.png';
 import { useApp } from '../state/AppContext';
 import { DEMO_MODE, DEVELOPER_CREDIT } from '../config';
 import { DEMO_USERS } from '../data/demoRepo';
@@ -23,7 +24,7 @@ export default function Login() {
   return (
     <section className="phone login">
       <div className="status"><b>9:41</b><span>▮▮ ◖ ▰</span></div>
-      <div className="login-hero"><div className="sun-cross">✝</div><HandHeart size={78} strokeWidth={1.8} /><h1>Paluwagan</h1><i>Together We Grow</i></div>
+      <div className="login-hero"><img className="login-logo" src={logo} alt="Paluwagan" /></div>
       <div className="login-form">
         <label><UserRound /><input placeholder={DEMO_MODE ? 'Demo mode: just pick a role' : 'Email or Username'} value={email} onChange={e => setEmail(e.target.value)} disabled={DEMO_MODE} autoCapitalize="none" /></label>
         <label><LockKeyhole /><input placeholder="Password" type={show ? 'text' : 'password'} value={pw} onChange={e => setPw(e.target.value)} disabled={DEMO_MODE} onKeyDown={e => e.key === 'Enter' && submit()} /><Eye className="eye" onClick={() => setShow(!show)} /></label>

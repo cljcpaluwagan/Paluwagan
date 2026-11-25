@@ -30,3 +30,50 @@
 .period select{border:0;background:transparent;font-weight:700;font-size:15px;padding:0;width:auto}
 .section-title{display:flex;justify-content:space-between;font-weight:700;font-size:13px;margin:12px 4px 6px}
 @media (max-width:520px){.preview-stage{padding:0}.phone{width:100vw;height:100dvh;max-height:none;min-height:0;border:0;border-radius:0}.status{padding-top:max(5px,env(safe-area-inset-top));height:auto}}
+
+/* =====================  GLASS STYLE  ===================== */
+:root{--g-fill:rgba(255,255,255,.40);--g-fill-2:rgba(255,255,255,.62);--g-edge:rgba(255,255,255,.75);--g-shadow:0 10px 30px rgba(18,58,140,.18);--g-blur:blur(18px) saturate(170%)}
+.app{background:#cfe0fb}
+/* colourful light behind the glass, so the blur has something to refract */
+.phone{background:linear-gradient(160deg,#bfe0ff 0%,#a9c4ff 38%,#d4c2ff 70%,#b8f0e0 100%)}
+.phone::before,.phone::after{content:"";position:absolute;border-radius:50%;filter:blur(36px);pointer-events:none;z-index:0}
+.phone::before{width:250px;height:250px;left:-90px;top:70px;background:radial-gradient(circle,#2f86ff,transparent 70%);opacity:.75}
+.phone::after{width:290px;height:290px;right:-120px;bottom:40px;background:radial-gradient(circle,#ff9ad5,#9b7bff 45%,transparent 72%);opacity:.6}
+.screen{position:relative;z-index:1;background:transparent;padding-bottom:92px;-webkit-overflow-scrolling:touch}
+.status,.header{position:relative;z-index:3;background:rgba(8,70,170,.58);-webkit-backdrop-filter:var(--g-blur);backdrop-filter:var(--g-blur);border-bottom:1px solid rgba(255,255,255,.28)}
+.header{box-shadow:0 6px 20px rgba(0,40,120,.25)}
+/* floating glass tab bar */
+.bottom{z-index:4;left:10px;right:10px;bottom:calc(10px + env(safe-area-inset-bottom));height:60px;border-radius:26px;background:rgba(8,48,125,.55);-webkit-backdrop-filter:blur(22px) saturate(190%);backdrop-filter:blur(22px) saturate(190%);border:1px solid rgba(255,255,255,.35);box-shadow:0 12px 32px rgba(5,30,90,.35),inset 0 1px 0 rgba(255,255,255,.4)}
+.bottom .selected{background:rgba(255,255,255,.22);border-radius:18px;box-shadow:inset 0 1px 0 rgba(255,255,255,.5)}
+/* glass panels */
+.card,.member-list,.settings-list,.tabs,.note,.assign{background:var(--g-fill);-webkit-backdrop-filter:var(--g-blur);backdrop-filter:var(--g-blur);border:1px solid var(--g-edge);box-shadow:var(--g-shadow),inset 0 1px 0 rgba(255,255,255,.85)}
+.member-list{background:var(--g-fill-2);border-radius:20px}
+.tabs{background:rgba(255,255,255,.32)}
+.tabs b{background:rgba(22,122,255,.78);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.55)}
+.profile{background:linear-gradient(135deg,rgba(10,125,230,.62),rgba(6,50,140,.56));border:1px solid rgba(255,255,255,.55);box-shadow:0 14px 34px rgba(5,40,130,.35),inset 0 1px 0 rgba(255,255,255,.5)}
+.contribution{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.5)}
+.cycle header{background:linear-gradient(100deg,rgba(8,120,232,.75),rgba(7,82,183,.7))}
+.reminder,.rotation,.info{background:rgba(255,255,255,.38)}
+.note{background:rgba(214,232,255,.55)}.note.warn{background:rgba(255,236,200,.62)}.note.bad{background:rgba(255,220,220,.62)}
+.pill{background:rgba(199,244,216,.78);border:1px solid rgba(255,255,255,.7);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.pill.blue{background:rgba(213,232,255,.8)}.pill.orange{background:rgba(255,228,199,.82)}
+.mini-avatar,.avatar{background:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.8)}
+.progress{background:rgba(255,255,255,.5)}
+.wide,.btn{box-shadow:0 8px 22px rgba(8,90,220,.35),inset 0 1px 0 rgba(255,255,255,.45);border:1px solid rgba(255,255,255,.4)}
+.btn.ghost{background:rgba(255,255,255,.5);color:#0b4aa8;box-shadow:none}
+.btn.danger{background:rgba(255,225,225,.7)}
+.logout{background:rgba(255,235,235,.55);-webkit-backdrop-filter:var(--g-blur);backdrop-filter:var(--g-blur);border:1px solid rgba(255,255,255,.8)}
+.fld input,.fld select,.screen select,.assign select{background:rgba(255,255,255,.6);border:1px solid rgba(255,255,255,.85);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.period select{background:transparent;border:0}
+.assign-row,.member,.setting-row{border-color:rgba(255,255,255,.55)}
+.toast{background:rgba(8,40,110,.72);-webkit-backdrop-filter:var(--g-blur);backdrop-filter:var(--g-blur);border:1px solid rgba(255,255,255,.35);bottom:84px}
+.update-banner{background:rgba(10,122,61,.78);-webkit-backdrop-filter:var(--g-blur);backdrop-filter:var(--g-blur);border-bottom:1px solid rgba(255,255,255,.35)}
+/* login: logo on frosted glass */
+.login{background:linear-gradient(160deg,#2f7fe8 0%,#6f8dff 40%,#c9a8ff 75%,#a5ecd8 100%)}
+.login-hero{background:radial-gradient(circle at 50% 40%,rgba(255,255,255,.55),transparent 62%);text-shadow:none;height:40%}
+.login-logo{width:min(62vw,230px);height:auto;filter:drop-shadow(0 12px 24px rgba(5,30,100,.45))}
+.login-form{margin:0 14px 14px;border-radius:28px;background:rgba(255,255,255,.34);-webkit-backdrop-filter:var(--g-blur);backdrop-filter:var(--g-blur);border:1px solid var(--g-edge);box-shadow:var(--g-shadow),inset 0 1px 0 rgba(255,255,255,.85)}
+.login-form label,.roles div{background:rgba(255,255,255,.62);border:1px solid rgba(255,255,255,.85);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.roles div.on{background:rgba(190,220,255,.85);outline:2px solid #1a73e8}
+img.group-pic{width:80px;height:80px;object-fit:contain;background:transparent;border-radius:0;filter:drop-shadow(0 6px 12px rgba(5,40,130,.35))}
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){.card,.member-list,.settings-list,.tabs,.assign,.login-form{background:rgba(255,255,255,.88)}.bottom,.header,.status{background:#0a3f9a}}

@@ -1,6 +1,7 @@
 import React from 'react';
 import { ChevronRight, LogOut, Users, Bell, Smartphone, Info, CalendarCog, ClipboardList, Building2 } from 'lucide-react';
 import { Phone, Card } from '../components/Phone';
+import logo from '../assets/logo.png';
 import { useApp, Screen } from '../state/AppContext';
 import { can } from '../lib/permissions';
 import { APP_VERSION, DEVELOPER_CREDIT } from '../config';
@@ -28,7 +29,7 @@ export default function Settings() {
   ];
   return (
     <Phone title="Settings" active={3} back right="settings">
-      <Card className="group"><div className="group-pic">✝</div><div><b>{snap.title}</b><small>Faith • Unity • Sharing</small></div><ChevronRight /></Card>
+      <Card className="group"><img className="group-pic" src={logo} alt="Paluwagan" /><div><b>{snap.title}</b><small>Faith • Unity • Sharing</small></div><ChevronRight /></Card>
       <Card className="settings-list">{rows.filter(r => r[3]).map(([I, t, fn]) => <div className="setting-row" key={t} onClick={fn} role="button"><I /><b>{t}</b><ChevronRight /></div>)}</Card>
       <button className="logout" onClick={logout}><LogOut /> Log Out</button>
       <p className="center muted version">{DEVELOPER_CREDIT}</p>
