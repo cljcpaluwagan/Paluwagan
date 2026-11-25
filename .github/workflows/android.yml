@@ -19,12 +19,16 @@ jobs:
         with: { distribution: temurin, java-version: 17 }
       - name: Accept Android SDK licenses (SDK is preinstalled on the runner)
         run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
       - run: npm install
       - run: npm test            # payout rules must pass before an APK is built
       - run: npx tsc --noEmit || echo "::warning::TypeScript warnings (build continues)"
       - run: npx vite build
       - run: npx cap add android
       - run: npx cap sync android
+      - name: Apply Paluwagan logo (launcher icon + splash images only; package id and signing are untouched)
+        run: pip install pillow && python3 scripts/make-android-icons.py
       - name: Stamp version (higher build number = update available)
         run: |
           sed -i "s/versionCode [0-9]*/versionCode ${{ github.run_number }}/; s/versionName \"[^\"]*\"/versionName \"1.0.${{ github.run_number }}\"/" android/app/build.gradle
@@ -49,6 +53,19 @@ jobs:
             -Pandroid.injected.signing.store.file="$KS_FILE" -Pandroid.injected.signing.store.password="$KS_PW" \
             -Pandroid.injected.signing.key.alias="$KS_AL" -Pandroid.injected.signing.key.password="$KS_PW"
           cp app/build/outputs/apk/release/app-release.apk ../paluwagan.apk
+      - name: Verify launcher icon inside the APK
+        run: |
+          AAPT2=$(ls $ANDROID_HOME/build-tools/*/aapt2 | tail -1); APK=android/app/build/outputs/apk/release/app-release.apk
+          echo "--- icon entries:"; $AAPT2 dump badging $APK | grep -E "application-icon|application:" | cut -c1-200
+          echo "--- icon resources:"; $AAPT2 dump resources $APK | grep -E "ic_launcher" | head -30
+          if $AAPT2 dump resources $APK | grep -q "drawable/ic_launcher_foreground"; then echo "::error::The old default vector icon is still in the APK"; exit 1; fi
+      - name: Save the icon found inside the APK (so you can look at it on the Releases page)
+        run: |
+          AAPT2=$(ls $ANDROID_HOME/build-tools/*/aapt2 | tail -1); APK=android/app/build/outputs/apk/release/app-release.apk
+          P=$($AAPT2 dump resources $APK | awk '/resource .* mipmap\/ic_launcher$/{f=1;next} /^ *resource /{f=0} f' | grep xxxhdpi | sed -n 's/.*(file) \(res\/[^ ]*\.png\).*/\1/p' | head -1)
+          echo "icon file inside APK: $P"
+          if [ -n "$P" ]; then unzip -p $APK "$P" > icon-in-apk.png; fi
+          true
       - uses: actions/upload-artifact@v4
         with: { name: paluwagan-apk, path: paluwagan.apk }
       - uses: softprops/action-gh-release@v2
@@ -56,5 +73,7 @@ jobs:
           tag_name: build-${{ github.run_number }}
           name: Paluwagan v1.0.${{ github.run_number }}
           body: Automatic build ${{ github.run_number }} from ${{ github.sha }}
-          files: paluwagan.apk
+          files: |
+            paluwagan.apk
+            icon-in-apk.png
           make_latest: true
