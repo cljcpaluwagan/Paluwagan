@@ -32,14 +32,14 @@ export function makeSupabaseRepo(_user: User): Repo {
       }
       const id = cur?.id ?? '00000000-0000-0000-0000-000000000000';
       const [st, mem, cm, sl, px, co, au, pr] = await Promise.all([
-        supabase.from('app_settings').select('title').single(), supabase.from('members').select('*').order('full_name'),
+        supabase.from('app_settings').select('*').single(), supabase.from('members').select('*').order('full_name'),
         supabase.from('cycle_members').select('member_id').eq('cycle_id', id), supabase.from('payout_schedule').select('*').eq('cycle_id', id).order('payout_date'),
         supabase.from('payout_transactions').select('*').eq('cycle_id', id), supabase.from('contributions').select('*').eq('cycle_id', id),
         supabase.from('audit_logs').select('*').order('at', { ascending: false }).limit(50), supabase.from('profiles').select('id, full_name'),
       ]);
       const names = new Map((pr.data || []).map((p: any) => [p.id, p.full_name]));
       return {
-        title: st.data?.title ?? 'Paluwagan',
+        title: st.data?.title ?? 'Paluwagan', logo: (st.data as any)?.logo_data ?? null, background: (st.data as any)?.bg_data ?? null,
         members: ok(mem).map((m: any): Member => ({ id: m.id, name: m.full_name, archived: m.archived, pendingDecision: m.pending_decision })),
         cycle: cur, eligible: (cm.data || []).map((r: any) => r.member_id),
         slots: (sl.data || []).map((s: any): Slot => ({ id: s.id, cycleId: s.cycle_id, memberId: s.member_id, month: s.month, date: s.payout_date, status: s.status, manual: s.manual })),
@@ -60,6 +60,10 @@ export function makeSupabaseRepo(_user: User): Repo {
     submitForReview: (id, note) => rpc('submit_for_review', { p_cycle: id, p_note: note }),
     rejectReview: (id, reason) => rpc('reject_review', { p_cycle: id, p_reason: reason }),
     closeCycle: id => rpc('close_cycle', { p_cycle: id }),
+    async setBranding(a) {
+      const u: Record<string, string | null> = {}; if ('logo' in a) u.logo_data = a.logo ?? null; if ('background' in a) u.bg_data = a.background ?? null;
+      const r = await supabase.from('app_settings').update(u).eq('id', 1); if (r.error) throw new Error(r.error.message + ' (run supabase/migrations/002_branding.sql)');
+    },
     async setTitle(t) { const r = await supabase.from('app_settings').update({ title: t }).eq('id', 1); if (r.error) throw new Error(r.error.message); },
   };
 }

@@ -15,5 +15,7 @@ export interface Repo {
   rejectReview(cycleId: string, reason: string): Promise<void>;
   closeCycle(cycleId: string): Promise<void>;
   setTitle(t: string): Promise<void>;
+  /** undefined = leave as is, null = reset to default */
+  setBranding(a: { logo?: string | null; background?: string | null }): Promise<void>;
 }
 export type RepoFactory = (u: User) => Repo;

@@ -3,9 +3,9 @@ import { AppProvider, useApp, Screen } from './state/AppContext';
 import UpdateBanner from './components/UpdateBanner';
 import Login from './screens/Login'; import Home from './screens/Home'; import Payments from './screens/Payments'; import Collection from './screens/Collection';
 import Schedule from './screens/Schedule'; import Reports from './screens/Reports'; import Messages from './screens/Messages'; import Settings from './screens/Settings';
-import PayoutSettings from './screens/PayoutSettings'; import Cycle from './screens/Cycle'; import Members from './screens/Members';
+import PayoutSettings from './screens/PayoutSettings'; import Cycle from './screens/Cycle'; import Members from './screens/Members'; import Branding from './screens/Branding';
 
-const SCREENS: Record<Screen, React.ComponentType> = { login: Login, home: Home, payments: Payments, collection: Collection, schedule: Schedule, reports: Reports, messages: Messages, settings: Settings, payoutSettings: PayoutSettings, cycle: Cycle, members: Members };
+const SCREENS: Record<Screen, React.ComponentType> = { login: Login, home: Home, payments: Payments, collection: Collection, schedule: Schedule, reports: Reports, messages: Messages, settings: Settings, payoutSettings: PayoutSettings, cycle: Cycle, members: Members, branding: Branding };
 function Shell() {
   const { screen, user, snap } = useApp();
   const S = !user ? Login : SCREENS[screen];

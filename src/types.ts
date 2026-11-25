@@ -41,5 +41,7 @@ export interface Snapshot {
   contributions: Contribution[];
   audit: AuditEntry[];
   closedCycles: Cycle[];
+  logo?: string | null;        // uploaded group logo (data URL)
+  background?: string | null;  // uploaded app background (data URL)
 }
 export interface ScheduleCfg { cycleId: string; startMonth: string; payoutDay: number; perMonth: number }

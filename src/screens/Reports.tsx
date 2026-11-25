@@ -22,7 +22,7 @@ export default function Reports() {
       <div className="tabs report-tabs">{T('sum', 'Summary')}{T('sched', 'Payout Schedule')}{T('tx', 'Transactions')}</div>
       {tab === 'sum' && <>
         <Card className="cycle"><header>Cycle Overview<small>{c.name} · {c.status.replace(/_/g, ' ')}</small></header>
-          <div className="chart-row"><div className="donut" style={{ border: 0, background: `conic-gradient(#0bb37a ${p.pct}%, #f3a11a 0)`, boxShadow: 'inset 0 0 0 16px #f7faff' }}><b>{p.pct}%</b></div>
+          <div className="chart-row"><div className="donut" style={{ border: 0, background: `conic-gradient(#0bb37a ${p.pct}%, #f3a11a 0)`, boxShadow: 'inset 0 0 0 16px rgba(8,30,85,.92)' }}><b>{p.pct}%</b></div>
             <div><p>🟢 Paid out ({p.paid})</p><p>🟠 Awaiting ({p.awaiting})</p><small className="muted">Based on confirmed releases</small></div></div></Card>
         <div className="stats"><Stat a="Eligible" b={p.eligible} /><Stat a="Scheduled" b={p.scheduled} /><Stat a="Remaining months" b={p.remainingMonths} /></div>
         <div className="stats"><Stat a="Scheduled amount" b={peso(p.scheduledAmount)} /><Stat a="Released" b={peso(p.releasedAmount)} /><Stat a="Collected" b={peso(collected)} /></div>

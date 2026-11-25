@@ -4,7 +4,7 @@ create type app_role as enum ('ADMIN','CASHIER','MEMBER');
 
 create table profiles (id uuid primary key references auth.users on delete cascade, full_name text not null default '', role app_role not null default 'MEMBER', member_id uuid, created_at timestamptz not null default now());
 create table members (id uuid primary key default gen_random_uuid(), full_name text not null, archived boolean not null default false, pending_decision boolean not null default false, created_at timestamptz not null default now());
-create table app_settings (id int primary key default 1 check (id = 1), title text not null default 'Paluwagan');
+create table app_settings (id int primary key default 1 check (id = 1), title text not null default 'Paluwagan', logo_data text, bg_data text);
 insert into app_settings default values;
 create table cycles (
   id uuid primary key default gen_random_uuid(), name text not null,

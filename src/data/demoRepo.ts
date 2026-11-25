@@ -5,7 +5,7 @@ import { assertCan } from '../lib/permissions';
 import { addMonths, monthOf, payoutDate, todayISO } from '../lib/dates';
 import { deriveStatus, generateSchedule, progress, uid, validateSchedule } from '../lib/engine';
 
-interface DB { title: string; members: Member[]; cycles: Cycle[]; cm: Record<string, string[]>; slots: Slot[]; payouts: Payout[]; contributions: Contribution[]; audit: AuditEntry[] }
+interface DB { logo?: string | null; bg?: string | null; title: string; members: Member[]; cycles: Cycle[]; cm: Record<string, string[]>; slots: Slot[]; payouts: Payout[]; contributions: Contribution[]; audit: AuditEntry[] }
 const KEY = 'paluwagan-demo-v1';
 export const DEMO_USERS: User[] = [
   { id: 'u-admin', name: 'Admin', role: 'ADMIN' }, { id: 'u-cashier', name: 'Cashier', role: 'CASHIER' },
@@ -43,7 +43,7 @@ export function makeDemoRepo(user: User): Repo {
       if (cur) { refresh(d, cur); write(d); }
       const id = cur?.id;
       return {
-        title: d.title, members: d.members, cycle: cur, eligible: id ? d.cm[id] || [] : [],
+        title: d.title, logo: d.logo ?? null, background: d.bg ?? null, members: d.members, cycle: cur, eligible: id ? d.cm[id] || [] : [],
         slots: d.slots.filter(s => s.cycleId === id), payouts: d.payouts.filter(p => p.cycleId === id),
         contributions: d.contributions.filter(c => c.cycleId === id), audit: d.audit.slice(0, 50),
         closedCycles: d.cycles.filter(c => c.status === 'CLOSED' && c.id !== id),
@@ -128,6 +128,7 @@ export function makeDemoRepo(user: User): Repo {
       const c = cyc(d, id); if (c.status !== 'FOR_ADMIN_REVIEW' || !c.reconciled) throw new Error('Cycle must be FOR_ADMIN_REVIEW and reconciled');
       c.status = 'CLOSED'; log(d, 'cycle.close', { id });
     }),
+    setBranding: a => tx(d => { assertCan(user.role, 'settings.general'); if ('logo' in a) d.logo = a.logo ?? null; if ('background' in a) d.bg = a.background ?? null; log(d, 'settings.branding', Object.keys(a)); }),
     setTitle: t => tx(d => { assertCan(user.role, 'settings.general'); d.title = t.trim() || d.title; log(d, 'settings.title', { t }); }),
   };
 }

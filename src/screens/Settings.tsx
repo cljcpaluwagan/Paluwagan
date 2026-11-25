@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronRight, LogOut, Users, Bell, Smartphone, Info, CalendarCog, ClipboardList, Building2 } from 'lucide-react';
+import { ChevronRight, LogOut, Users, Bell, Smartphone, Info, CalendarCog, ClipboardList, Building2, Image as ImageIcon } from 'lucide-react';
 import { Phone, Card } from '../components/Phone';
 import logo from '../assets/logo.png';
 import { useApp, Screen } from '../state/AppContext';
@@ -8,7 +8,7 @@ import { APP_VERSION, DEVELOPER_CREDIT } from '../config';
 import { checkForUpdate, openUrl } from '../lib/updateCheck';
 
 export default function Settings() {
-  const { user, snap, go, logout, run, notify } = useApp();
+  const { user, snap, go, logout, run, notify, brand } = useApp();
   if (!user || !snap) return null;
   const staff = can(user.role, 'member.manage');
   const editTitle = () => { const t = window.prompt('Group / app title', snap.title); if (t && t.trim()) run(r => r.setTitle(t), 'Title updated'); };
@@ -19,6 +19,7 @@ export default function Settings() {
   };
   const rows: [typeof Users, string, () => void, boolean][] = [
     [Building2, 'Group Information', editTitle, can(user.role, 'settings.general')],            // Admin only
+    [ImageIcon, 'Logo & Background', () => go('branding'), can(user.role, 'settings.general')],      // Admin only
     [CalendarCog, 'Payout Settings', () => go('payoutSettings'), staff],                           // Cashier full access, Admin read
     [ClipboardList, 'Cycle Management', () => go('cycle'), staff],
     [Users, 'Members', () => go('members'), staff],
@@ -29,7 +30,7 @@ export default function Settings() {
   ];
   return (
     <Phone title="Settings" active={3} back right="settings">
-      <Card className="group"><img className="group-pic" src={logo} alt="Paluwagan" /><div><b>{snap.title}</b><small>Faith • Unity • Sharing</small></div><ChevronRight /></Card>
+      <Card className="group"><img className="group-pic" src={brand.logo || logo} alt="Paluwagan" /><div><b>{snap.title}</b><small>Faith • Unity • Sharing</small></div><ChevronRight /></Card>
       <Card className="settings-list">{rows.filter(r => r[3]).map(([I, t, fn]) => <div className="setting-row" key={t} onClick={fn} role="button"><I /><b>{t}</b><ChevronRight /></div>)}</Card>
       <button className="logout" onClick={logout}><LogOut /> Log Out</button>
       <p className="center muted version">{DEVELOPER_CREDIT}</p>

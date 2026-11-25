@@ -23,9 +23,9 @@ export function BottomNav({ active = 0 }: { active?: number }) {
   return <nav className="bottom">{items.map(({ I, t, to }, i) => <div className={active === i ? 'selected' : ''} key={t} onClick={() => go(to, true)} role="button"><I /><small>{t}</small></div>)}</nav>;
 }
 export function Phone({ children, title, active = 0, back = false, right }: { children: React.ReactNode; title: string; active?: number; back?: boolean; right?: string }) {
-  const { toast, busy } = useApp();
+  const { toast, busy, brand } = useApp();
   return (
-    <section className="phone">
+    <section className="phone" style={brand.bg ? { backgroundImage: `linear-gradient(rgba(3,10,35,.55),rgba(3,10,35,.74)), url(${brand.bg})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}>
       <StatusBar /><Header title={title} back={back} right={right} />
       <main className="screen">{children}</main>
       {(toast || busy) && <div className="toast">{busy ? 'Working…' : toast}</div>}
