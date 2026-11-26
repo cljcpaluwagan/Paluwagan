@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { applyTheme, getTheme, Theme } from '../lib/theme';
-import { ChevronRight, LogOut, Users, Bell, Smartphone, Info, CalendarCog, ClipboardList, Building2, Image as ImageIcon } from 'lucide-react';
+import { ChevronRight, LogOut, Users, Bell, Smartphone, Info, CalendarCog, ClipboardList, Building2, Image as ImageIcon, UserRound, ShieldCheck } from 'lucide-react';
 import { Phone, Card } from '../components/Phone';
 import logo from '../assets/logo.png';
 import { useApp, Screen } from '../state/AppContext';
@@ -22,6 +22,8 @@ export default function Settings() {
     if (window.confirm(`Version ${u.version} needs a quick reinstall. Download now?`)) openUrl(u.url);
   };
   const rows: [typeof Users, string, () => void, boolean][] = [
+    [UserRound, 'My Profile', () => go('profile'), true],
+    [ShieldCheck, 'Users & Roles', () => go('users'), can(user.role, 'users.manage')],
     [Building2, 'Group Information', editTitle, can(user.role, 'settings.general')],            // Admin only
     [ImageIcon, 'Logo & Background', () => go('branding'), can(user.role, 'settings.general')],      // Admin only
     [CalendarCog, 'Payout Settings', () => go('payoutSettings'), staff],                           // Cashier full access, Admin read

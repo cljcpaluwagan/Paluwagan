@@ -1,4 +1,4 @@
-import type { Snapshot, Slot, User } from '../types';
+import type { Snapshot, Slot, User, Profile, Role } from '../types';
 export interface NewCycle { name: string; startMonth: string; payoutDay: number; dueDay: number; reminderDays: number; perMonth: number; contribution: number; memberIds: string[] }
 export interface SaveSchedule { cycleId: string; startMonth: string; payoutDay: number; dueDay: number; reminderDays: number; perMonth: number; slots: Slot[]; finalize: boolean }
 export interface Repo {
@@ -15,6 +15,11 @@ export interface Repo {
   rejectReview(cycleId: string, reason: string): Promise<void>;
   closeCycle(cycleId: string): Promise<void>;
   setTitle(t: string): Promise<void>;
+  updateMyProfile(a: { name: string; phone?: string }): Promise<void>;
+  listUsers(): Promise<Profile[]>;                      // Admin
+  setRole(userId: string, role: Role): Promise<void>;   // Admin
+  approveRegistration(regId: string, memberId?: string): Promise<void>;
+  rejectRegistration(regId: string, reason: string): Promise<void>;
   /** undefined = leave as is, null = reset to default */
   setBranding(a: { logo?: string | null; background?: string | null }): Promise<void>;
 }

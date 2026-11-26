@@ -3,8 +3,10 @@ export type CycleStatus = 'DRAFT' | 'ACTIVE' | 'AWAITING_COMPLETION' | 'FOR_ADMI
 /** Stored status is SCHEDULED or RELEASED. READY_FOR_RELEASE is derived from the date (see engine.slotStatus). */
 export type SlotStatus = 'SCHEDULED' | 'READY_FOR_RELEASE' | 'RELEASED';
 
-export interface User { id: string; name: string; role: Role; memberId?: string }
-export interface Member { id: string; name: string; archived: boolean; pendingDecision: boolean }
+export interface User { id: string; name: string; role: Role; memberId?: string; phone?: string; email?: string; approved: boolean }   // approved = staff, or a member linked by Admin/Cashier
+export interface Registration { id: string; userId: string; name: string; phone?: string; email?: string; status: 'PENDING' | 'APPROVED' | 'REJECTED'; createdAt: string }
+export interface Profile { id: string; name: string; phone?: string; email?: string; role: Role; memberId?: string }
+export interface Member { id: string; name: string; archived: boolean; pendingDecision: boolean; linked?: boolean }
 export interface Cycle {
   id: string; name: string; status: CycleStatus;
   startMonth: string;        // 'YYYY-MM'
@@ -41,6 +43,7 @@ export interface Snapshot {
   contributions: Contribution[];
   audit: AuditEntry[];
   closedCycles: Cycle[];
+  registrations: Registration[];   // pending sign-ups (staff only)
   logo?: string | null;        // uploaded group logo (data URL)
   background?: string | null;  // uploaded app background (data URL)
 }

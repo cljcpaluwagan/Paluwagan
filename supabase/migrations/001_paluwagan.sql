@@ -2,8 +2,10 @@
 create extension if not exists pgcrypto;
 create type app_role as enum ('ADMIN','CASHIER','MEMBER');
 
-create table profiles (id uuid primary key references auth.users on delete cascade, full_name text not null default '', role app_role not null default 'MEMBER', member_id uuid, created_at timestamptz not null default now());
+create table profiles (id uuid primary key references auth.users on delete cascade, full_name text not null default '' check (char_length(full_name) between 2 and 80), phone text check (phone is null or phone ~ '^[0-9+() -]{7,20}$'), role app_role not null default 'MEMBER', member_id uuid, created_at timestamptz not null default now());
 create table members (id uuid primary key default gen_random_uuid(), full_name text not null, archived boolean not null default false, pending_decision boolean not null default false, created_at timestamptz not null default now());
+alter table profiles add constraint profiles_member_fk foreign key (member_id) references members(id), add constraint profiles_member_unique unique (member_id);
+create table registrations (id uuid primary key default gen_random_uuid(), user_id uuid not null unique references auth.users on delete cascade, full_name text not null, phone text, email text, status text not null default 'PENDING' check (status in ('PENDING','APPROVED','REJECTED')), decided_by uuid, decided_at timestamptz, created_at timestamptz not null default now());
 create table app_settings (id int primary key default 1 check (id = 1), title text not null default 'Paluwagan', logo_data text, bg_data text);
 insert into app_settings default values;
 create table cycles (
@@ -37,6 +39,7 @@ create table audit_logs (id bigint generated always as identity primary key, at 
 -- helpers ---------------------------------------------------------------
 create function app_role_of() returns app_role language sql stable security definer set search_path = public as $$ select role from profiles where id = auth.uid() $$;
 create function is_staff() returns boolean language sql stable security definer set search_path = public as $$ select coalesce(app_role_of() in ('ADMIN','CASHIER'), false) $$;
+create function has_access() returns boolean language sql stable security definer set search_path = public as $$ select coalesce((select role in ('ADMIN','CASHIER') or member_id is not null from profiles where id = auth.uid()), false) $$;   -- approved members and staff only
 create function must_be(variadic r app_role[]) returns void language plpgsql stable security definer set search_path = public as $$
 begin if auth.uid() is null or app_role_of() is null or not (app_role_of() = any (r)) then raise exception 'Not allowed (requires %)', r; end if; end $$;
 create function audit(a text, d jsonb) returns void language sql security definer set search_path = public as $$ insert into audit_logs(user_id, action, detail) values (auth.uid(), a, d) $$;
@@ -64,13 +67,14 @@ alter table profiles enable row level security; alter table members enable row l
 alter table cycles enable row level security; alter table cycle_members enable row level security; alter table payout_schedule enable row level security;
 alter table payout_transactions enable row level security; alter table contributions enable row level security; alter table audit_logs enable row level security;
 create policy p_self on profiles for select using (id = auth.uid() or is_staff());
-create policy p_admin_upd on profiles for update using (app_role_of() = 'ADMIN') with check (app_role_of() = 'ADMIN');
-create policy m_read on members for select using (auth.uid() is not null);
+alter table registrations enable row level security;
+create policy r_read on registrations for select using (user_id = auth.uid() or is_staff());
+create policy m_read on members for select using (has_access());
 create policy s_read on app_settings for select using (auth.uid() is not null);
 create policy s_admin on app_settings for update using (app_role_of() = 'ADMIN') with check (app_role_of() = 'ADMIN');  -- CASHIER cannot edit app title / general settings
-create policy c_read on cycles for select using (auth.uid() is not null);
-create policy cm_read on cycle_members for select using (auth.uid() is not null);
-create policy ps_read on payout_schedule for select using (auth.uid() is not null);
+create policy c_read on cycles for select using (has_access());
+create policy cm_read on cycle_members for select using (has_access());
+create policy ps_read on payout_schedule for select using (has_access());
 create policy tx_read on payout_transactions for select using (is_staff() or member_id = (select member_id from profiles where id = auth.uid()));
 create policy co_read on contributions for select using (is_staff() or member_id = (select member_id from profiles where id = auth.uid()));
 create policy al_read on audit_logs for select using (is_staff());
@@ -190,10 +194,74 @@ begin perform must_be('ADMIN');                                   -- ONLY the ad
   if not found then raise exception 'Cycle must be FOR_ADMIN_REVIEW and reconciled'; end if;
   perform audit('cycle.close', jsonb_build_object('cycle', p_cycle)); end $$;
 
-revoke all on function add_member, archive_member, decide_member, create_cycle, save_schedule, activate_cycle, set_contribution, confirm_payout, submit_for_review, reject_review, close_cycle, refresh_cycle_status from public;
-revoke all on function audit, must_be from public;   -- nobody can forge audit entries
-grant execute on function add_member, archive_member, decide_member, create_cycle, save_schedule, activate_cycle, set_contribution, confirm_payout, submit_for_review, reject_review, close_cycle, refresh_cycle_status, payout_date to authenticated;
--- New sign-ups become MEMBER. Promote staff by hand:  update profiles set role = 'ADMIN' where id = '<auth user id>';
+
+-- ============ accounts, registration, profile, roles ============
+-- The FIRST account ever created becomes ADMIN (so create yours first). Everyone after is a MEMBER with a PENDING registration.
 create function handle_new_user() returns trigger language plpgsql security definer set search_path = public as $$
-begin insert into profiles(id, full_name) values (new.id, coalesce(new.raw_user_meta_data->>'full_name', new.email)); return new; end $$;
+declare first_admin boolean; nm text; ph text;
+begin
+  perform pg_advisory_xact_lock(7001);
+  select not exists (select 1 from profiles where role = 'ADMIN') into first_admin;
+  nm := left(regexp_replace(trim(coalesce(new.raw_user_meta_data->>'full_name', split_part(new.email, '@', 1))), '[<>{}]', '', 'g'), 80);
+  if char_length(nm) < 2 then nm := 'Member'; end if;
+  ph := nullif(trim(coalesce(new.raw_user_meta_data->>'phone', '')), '');
+  if ph is not null and ph !~ '^[0-9+() -]{7,20}$' then ph := null; end if;
+  insert into profiles(id, full_name, phone, role) values (new.id, nm, ph, case when first_admin then 'ADMIN'::app_role else 'MEMBER'::app_role end);
+  if not first_admin then insert into registrations(user_id, full_name, phone, email) values (new.id, nm, ph, new.email); end if;
+  return new; end $$;
 create trigger on_auth_user_created after insert on auth.users for each row execute function handle_new_user();
+
+create function update_my_profile(p_name text, p_phone text) returns void language plpgsql security definer set search_path = public as $$
+declare nm text := regexp_replace(trim(coalesce(p_name, '')), '[<>{}]', '', 'g'); ph text := nullif(trim(coalesce(p_phone, '')), '');
+begin
+  if auth.uid() is null then raise exception 'Not signed in'; end if;
+  if char_length(nm) not between 2 and 80 then raise exception 'Name must be 2-80 characters'; end if;
+  if ph is not null and ph !~ '^[0-9+() -]{7,20}$' then raise exception 'Invalid phone number'; end if;
+  update profiles set full_name = nm, phone = ph where id = auth.uid();   -- role and member link can NOT be changed here
+  perform audit('profile.update', jsonb_build_object('user', auth.uid())); end $$;
+
+create function set_user_role(p_user uuid, p_role app_role) returns void language plpgsql security definer set search_path = public as $$
+declare cur app_role;
+begin perform must_be('ADMIN');
+  if p_user = auth.uid() then raise exception 'You cannot change your own role'; end if;
+  select role into cur from profiles where id = p_user;
+  if cur is null then raise exception 'Unknown user'; end if;
+  if cur = 'ADMIN' and p_role <> 'ADMIN' and (select count(*) from profiles where role = 'ADMIN') <= 1 then raise exception 'There must be at least one Admin'; end if;
+  update profiles set role = p_role where id = p_user;
+  perform audit('role.change', jsonb_build_object('user', p_user, 'from', cur, 'to', p_role)); end $$;
+
+create function admin_list_users() returns table (id uuid, full_name text, phone text, role app_role, member_id uuid, email text) language plpgsql stable security definer set search_path = public as $$
+begin perform must_be('ADMIN');
+  return query select p.id, p.full_name, p.phone, p.role, p.member_id, u.email::text from profiles p join auth.users u on u.id = p.id order by p.created_at; end $$;
+
+create function approve_registration(p_reg uuid, p_member uuid default null) returns void language plpgsql security definer set search_path = public as $$
+declare r registrations; m uuid; open_cycle boolean;
+begin perform must_be('ADMIN', 'CASHIER');
+  select * into r from registrations where id = p_reg and status = 'PENDING' for update;
+  if not found then raise exception 'Registration not found or already decided'; end if;
+  if p_member is null then
+    select exists (select 1 from cycles where status <> 'CLOSED') into open_cycle;
+    insert into members(full_name, pending_decision) values (r.full_name, open_cycle) returning id into m;   -- never silently joins a running cycle
+  else
+    m := p_member;
+    if not exists (select 1 from members where id = m and not archived) then raise exception 'Member not found'; end if;
+    if exists (select 1 from profiles where member_id = m) then raise exception 'That member is already linked to an account'; end if;
+  end if;
+  update profiles set member_id = m where id = r.user_id and role = 'MEMBER';
+  update registrations set status = 'APPROVED', decided_by = auth.uid(), decided_at = now() where id = p_reg;
+  perform audit('registration.approve', jsonb_build_object('registration', p_reg, 'member', m)); end $$;
+
+create function reject_registration(p_reg uuid, p_reason text) returns void language plpgsql security definer set search_path = public as $$
+begin perform must_be('ADMIN', 'CASHIER');
+  update registrations set status = 'REJECTED', decided_by = auth.uid(), decided_at = now() where id = p_reg and status = 'PENDING';
+  if not found then raise exception 'Registration not found or already decided'; end if;
+  perform audit('registration.reject', jsonb_build_object('registration', p_reg, 'reason', left(coalesce(p_reason, ''), 200))); end $$;
+
+-- ============ privilege hardening (defence in depth on top of RLS) ============
+revoke all on all tables in schema public from anon;
+revoke insert, update, delete, truncate on all tables in schema public from authenticated;      -- every write goes through the checked functions
+grant update (title, logo_data, bg_data) on app_settings to authenticated;                       -- Admin only, enforced by policy s_admin
+revoke all on all functions in schema public from public, anon;
+grant execute on all functions in schema public to authenticated;
+revoke all on function audit(text, jsonb), must_be(app_role[]) from authenticated;              -- nobody can forge audit entries
+alter default privileges in schema public revoke execute on functions from public;

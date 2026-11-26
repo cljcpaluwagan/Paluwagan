@@ -1,15 +1,15 @@
 // Offline demo: same rules as the SQL functions, stored in localStorage. Used when no Supabase keys are set.
-import type { Contribution, Cycle, Member, Payout, Slot, Snapshot, User, AuditEntry } from '../types';
+import type { Contribution, Cycle, Member, Payout, Slot, Snapshot, User, AuditEntry, Registration, Profile, Role } from '../types';
 import type { Repo } from './repo';
 import { assertCan } from '../lib/permissions';
 import { addMonths, monthOf, payoutDate, todayISO } from '../lib/dates';
 import { deriveStatus, generateSchedule, progress, uid, validateSchedule } from '../lib/engine';
 
-interface DB { logo?: string | null; bg?: string | null; title: string; members: Member[]; cycles: Cycle[]; cm: Record<string, string[]>; slots: Slot[]; payouts: Payout[]; contributions: Contribution[]; audit: AuditEntry[] }
+interface DB { regs?: Registration[]; linked?: string[]; prof?: Record<string, { name: string; phone?: string }>; roles?: Record<string, Role>; logo?: string | null; bg?: string | null; title: string; members: Member[]; cycles: Cycle[]; cm: Record<string, string[]>; slots: Slot[]; payouts: Payout[]; contributions: Contribution[]; audit: AuditEntry[] }
 const KEY = 'paluwagan-demo-v1';
 export const DEMO_USERS: User[] = [
-  { id: 'u-admin', name: 'Admin', role: 'ADMIN' }, { id: 'u-cashier', name: 'Cashier', role: 'CASHIER' },
-  { id: 'u-maria', name: 'Maria Santos', role: 'MEMBER', memberId: 'm1' },
+  { id: 'u-admin', name: 'Admin', role: 'ADMIN', approved: true, email: 'admin@demo' }, { id: 'u-cashier', name: 'Cashier', role: 'CASHIER', approved: true, email: 'cashier@demo' },
+  { id: 'u-maria', name: 'Maria Santos', role: 'MEMBER', memberId: 'm1', approved: true, email: 'maria@demo' },
 ];
 const NAMES = ['Maria Santos','Juan Dela Cruz','Ana Reyes','Pedro Garcia','Liza Torres','Carlo Navarro','Rosa Mendoza','Mark Santos','Grace Cruz','Diana Garcia','Eric Navarro','Benita Cruz','Jose Ramos','Nena Bautista','Tomas Lim'];
 
@@ -23,6 +23,15 @@ function seed(): DB {
 }
 const read = (): DB => { try { const r = localStorage.getItem(KEY); if (r) return JSON.parse(r); } catch { /* ignore */ } const d = seed(); write(d); return d; };
 const write = (d: DB) => { try { localStorage.setItem(KEY, JSON.stringify(d)); } catch { /* ignore */ } };
+/** Demo sign-up: creates a PENDING registration, exactly like the real app. */
+export function demoRegister(a: { name: string; phone?: string; email: string }) {
+  const d = read(); (d.regs ||= []).push({ id: uid(), userId: uid(), name: a.name, phone: a.phone, email: a.email, status: 'PENDING', createdAt: new Date().toISOString() }); write(d);
+}
+/** Demo user with any edits (name, phone, role) applied. */
+export function getDemoUser(id: string): User | null {
+  const base = DEMO_USERS.find(u => u.id === id); if (!base) return null; const d = read();
+  return { ...base, ...(d.prof?.[id] ?? {}), role: d.roles?.[id] ?? base.role };
+}
 export const resetDemo = () => { try { localStorage.removeItem(KEY); } catch { /* ignore */ } };
 
 export function makeDemoRepo(user: User): Repo {
@@ -43,10 +52,11 @@ export function makeDemoRepo(user: User): Repo {
       if (cur) { refresh(d, cur); write(d); }
       const id = cur?.id;
       return {
-        title: d.title, logo: d.logo ?? null, background: d.bg ?? null, members: d.members, cycle: cur, eligible: id ? d.cm[id] || [] : [],
+        title: d.title, logo: d.logo ?? null, background: d.bg ?? null, members: d.members.map(m => ({ ...m, linked: (d.linked ?? []).includes(m.id) || DEMO_USERS.some(u => u.memberId === m.id) })), cycle: cur, eligible: id ? d.cm[id] || [] : [],
         slots: d.slots.filter(s => s.cycleId === id), payouts: d.payouts.filter(p => p.cycleId === id),
         contributions: d.contributions.filter(c => c.cycleId === id), audit: d.audit.slice(0, 50),
         closedCycles: d.cycles.filter(c => c.status === 'CLOSED' && c.id !== id),
+        registrations: (d.regs ?? []).filter(r => r.status === 'PENDING'),
       } as Snapshot;
     },
     addMember: n => tx(d => {
@@ -129,6 +139,31 @@ export function makeDemoRepo(user: User): Repo {
       c.status = 'CLOSED'; log(d, 'cycle.close', { id });
     }),
     setBranding: a => tx(d => { assertCan(user.role, 'settings.general'); if ('logo' in a) d.logo = a.logo ?? null; if ('background' in a) d.bg = a.background ?? null; log(d, 'settings.branding', Object.keys(a)); }),
+    updateMyProfile: a => tx(d => {
+      const name = a.name.trim(); if (name.length < 2 || name.length > 80) throw new Error('Name must be 2-80 characters');
+      (d.prof ||= {})[user.id] = { name, phone: a.phone?.trim() || undefined }; log(d, 'profile.update', { user: user.id });
+    }),
+    listUsers: async () => { assertCan(user.role, 'users.manage'); const d = read(); return DEMO_USERS.map(u => ({ id: u.id, name: d.prof?.[u.id]?.name ?? u.name, phone: d.prof?.[u.id]?.phone, email: u.email, role: d.roles?.[u.id] ?? u.role, memberId: u.memberId } as Profile)); },
+    setRole: (id, role) => tx(d => {
+      assertCan(user.role, 'users.manage'); if (id === user.id) throw new Error('You cannot change your own role');
+      const cur = d.roles?.[id] ?? DEMO_USERS.find(u => u.id === id)?.role; if (!cur) throw new Error('Unknown user');
+      const admins = DEMO_USERS.filter(u => (d.roles?.[u.id] ?? u.role) === 'ADMIN').length;
+      if (cur === 'ADMIN' && role !== 'ADMIN' && admins <= 1) throw new Error('There must be at least one Admin');
+      (d.roles ||= {})[id] = role; log(d, 'role.change', { id, from: cur, to: role });
+    }),
+    approveRegistration: (regId, memberId) => tx(d => {
+      assertCan(user.role, 'member.manage');
+      const r = (d.regs ?? []).find(x => x.id === regId && x.status === 'PENDING'); if (!r) throw new Error('Registration not found or already decided');
+      let m = memberId;
+      if (!m) { m = uid(); d.members.push({ id: m, name: r.name, archived: false, pendingDecision: !!open(d) }); }
+      else if (!d.members.some(x => x.id === m && !x.archived)) throw new Error('Member not found');
+      else if ((d.linked ?? []).includes(m) || DEMO_USERS.some(u => u.memberId === m)) throw new Error('That member is already linked to an account');
+      (d.linked ||= []).push(m); r.status = 'APPROVED'; log(d, 'registration.approve', { regId, member: m });
+    }),
+    rejectRegistration: (regId, reason) => tx(d => {
+      assertCan(user.role, 'member.manage'); const r = (d.regs ?? []).find(x => x.id === regId && x.status === 'PENDING'); if (!r) throw new Error('Registration not found or already decided');
+      r.status = 'REJECTED'; log(d, 'registration.reject', { regId, reason: reason.slice(0, 200) });
+    }),
     setTitle: t => tx(d => { assertCan(user.role, 'settings.general'); d.title = t.trim() || d.title; log(d, 'settings.title', { t }); }),
   };
 }

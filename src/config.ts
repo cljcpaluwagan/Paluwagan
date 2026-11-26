@@ -5,4 +5,5 @@ export const NATIVE_HASH: string = import.meta.env.VITE_NATIVE_HASH || '';   // 
 export const GITHUB_REPO: string = import.meta.env.VITE_GITHUB_REPO || '';  // 'owner/repo' — must be public for update checks
 export const SUPABASE_URL: string = import.meta.env.VITE_SUPABASE_URL || '';
 export const SUPABASE_ANON_KEY: string = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+export const IDLE_MINUTES = 10;   // automatic sign-out when nobody touches the app
 export const DEMO_MODE = !SUPABASE_URL || !SUPABASE_ANON_KEY;                // no Supabase keys -> offline demo data

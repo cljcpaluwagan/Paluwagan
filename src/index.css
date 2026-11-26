@@ -140,3 +140,12 @@ img.group-pic{width:80px;height:80px;object-fit:contain;background:transparent;b
 [data-theme="light"] .login-form input{color:#10244a}[data-theme="light"] .login-form svg{color:#0a65d8}
 [data-theme="light"] .login-form b,[data-theme="light"] .login-form small{color:#0a2a66}[data-theme="light"] .login-form a,[data-theme="light"] .login-form .or,[data-theme="light"] .login-form footer{color:#2b4a7d}
 [data-theme="light"] .roles div.on{background:rgba(190,220,255,.95);outline:2px solid #1a73e8}
+
+/* ---- accounts: register / pending / profile ---- */
+.login-hero.small{height:auto;padding:22px 0 4px}.login-hero.small .login-logo{width:96px}
+.login-form.scroll{overflow-y:auto;-webkit-overflow-scrolling:touch}
+.login-form .err,.err{color:#ffb4b4;font-size:12px;margin:2px 6px;text-align:center}
+.link{cursor:pointer;text-decoration:underline;text-align:center;display:block;font-size:12px;margin:8px 0}
+.login-form p.center{font-size:13px;line-height:1.45;margin:8px 4px}
+.login-form button:disabled{opacity:.55}
+[data-theme="light"] .err{color:#b42318}
