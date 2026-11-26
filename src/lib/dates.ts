@@ -14,6 +14,10 @@ export function addMonths(month: string, n: number): string {
   return `${Math.floor(i / 12)}-${pad((i % 12) + 1)}`;
 }
 export const monthIndex = (month: string) => { const [y, m] = month.split('-').map(Number); return y * 12 + m - 1; };
+export function addDays(iso: string, n: number): string {
+  const [y, m, d] = iso.split('-').map(Number); const t = new Date(Date.UTC(y, m - 1, d + n));
+  return `${t.getUTCFullYear()}-${pad(t.getUTCMonth() + 1)}-${pad(t.getUTCDate())}`;
+}
 export const todayISO = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
 export const monthOf = (iso: string) => iso.slice(0, 7);
 export const fmtMonth = (m: string) => { const [y, mm] = m.split('-').map(Number); return `${MON[mm - 1]} ${y}`; };

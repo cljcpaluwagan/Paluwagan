@@ -3,7 +3,8 @@ import { CalendarDays, FileText, Mail, Megaphone, Gift, Users, ClipboardList, Wa
 import { Phone, Card, Pill } from '../components/Phone';
 import { useApp, Screen } from '../state/AppContext';
 import { fmtDate, fmtMonth, monthOf, peso } from '../lib/dates';
-import { slotStatus, progress } from '../lib/engine';
+import { payoutStage, progress } from '../lib/engine';
+import { stageText } from '../lib/stage';
 
 export default function Home() {
   const { user, snap, today, go } = useApp();
@@ -16,7 +17,7 @@ export default function Home() {
   const tiles: [typeof Mail, string, Screen][] = isMember
     ? [[CalendarDays, 'My Payout Schedule', 'schedule'], [FileText, 'My Payment History', 'payments'], [Mail, 'Message Admin', 'messages'], [Megaphone, 'Announcements', 'messages']]
     : [[Wallet, 'Do Collection', 'collection'], [CalendarDays, 'Payout Schedule', 'schedule'], [ClipboardList, 'Cycle', 'cycle'], [Users, 'Members', 'members']];
-  const st = slot ? slotStatus(slot, today) : null;
+  const st = slot ? stageText(payoutStage(slot, snap.eligible, snap.contributions, today)) : null;
   return (
     <Phone title={snap.title} active={0}>
       <Card className="profile">
@@ -30,7 +31,7 @@ export default function Home() {
       </Card>
       <div className="tiles">{tiles.map(([I, t, to]) => <Card key={t} onClick={() => go(to)}><I /><b>{t}</b></Card>)}</div>
       {isMember
-        ? <Card className="next-payout" onClick={() => go('schedule')}><Gift /><div><b>Next Payout</b><strong>{slot ? fmtDate(slot.date) : 'Not scheduled'}</strong></div>{st && <Pill tone={st === 'RELEASED' ? 'green' : st === 'READY_FOR_RELEASE' ? 'orange' : 'blue'}>{st === 'RELEASED' ? '✓ Received' : st === 'READY_FOR_RELEASE' ? 'Ready' : 'Scheduled'}</Pill>}</Card>
+        ? <Card className="next-payout" onClick={() => go('schedule')}><Gift /><div><b>Next Payout</b><strong>{slot ? fmtDate(slot.date) : 'Not scheduled'}</strong></div>{st && <Pill tone={st.tone}>{st.short}</Pill>}</Card>
         : <Card className="next-payout" onClick={() => go('cycle')}><Gift /><div><b>Payout Progress</b><strong>{pr ? `${pr.paid} of ${pr.eligible} paid out (${pr.pct}%)` : '—'}</strong></div></Card>}
     </Phone>
   );

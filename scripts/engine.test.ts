@@ -80,3 +80,24 @@ test('cannot submit for review until everyone is paid', () => {
   const rel = all.map(x => ({ ...x, status: 'RELEASED' as const }));
   assert.equal(canSubmitForReview(cycle(), ids(4), rel, rel.map(pay)).ok, true);
 });
+
+import { payoutStage, canRelease } from '../src/lib/engine.ts';
+import type { Contribution } from '../src/types.ts';
+const paidBy = (month: string, n: number): Contribution[] => ids(4).slice(0, n).map(id => ({ id: 'c' + id, cycleId: 'c1', memberId: id, month, amount: 1000, status: 'PAID' as const }));
+test('payout stages follow the rules', () => {
+  const s = generateSchedule(cfg(2, '2026-12', 15), ids(4))[0];            // Dec 15
+  assert.equal(payoutStage(s, ids(4), [], '2026-11-20').stage, 'SCHEDULED');                       // collection not started
+  assert.equal(payoutStage(s, ids(4), paidBy('2026-12', 3), '2026-12-05').stage, 'WAITING_PAYMENTS'); // others have not paid
+  assert.equal(payoutStage(s, ids(4), paidBy('2026-12', 3), '2026-12-20').stage, 'WAITING_PAYMENTS'); // still waiting even after the date
+  assert.equal(payoutStage(s, ids(4), paidBy('2026-12', 4), '2026-12-10').stage, 'WAITING_DATE');     // all paid, not due
+  assert.equal(payoutStage(s, ids(4), paidBy('2026-12', 4), '2026-12-14').stage, 'PROCESSING');       // the day before
+  assert.equal(canRelease(payoutStage(s, ids(4), paidBy('2026-12', 4), '2026-12-14'), s, '2026-12-14'), false); // cannot release yet
+  assert.equal(canRelease(payoutStage(s, ids(4), paidBy('2026-12', 4), '2026-12-15'), s, '2026-12-15'), true);  // on the date
+  assert.equal(payoutStage({ ...s, status: 'RELEASED' }, ids(4), [], '2026-12-15').stage, 'RELEASED');
+});
+test('day before works across month and year ends', () => {
+  const s = generateSchedule(cfg(1, '2027-01', 1), ids(1))[0];            // Jan 1, 2027
+  assert.equal(payoutStage(s, ids(1), paidBy('2027-01', 1), '2026-12-31').stage, 'SCHEDULED');
+  const t = { ...s, month: '2026-12', date: '2026-12-01' };
+  assert.equal(payoutStage(t, ids(1), paidBy('2026-12', 1), '2026-11-30').stage, 'SCHEDULED');
+});

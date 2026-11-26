@@ -166,6 +166,8 @@ begin perform must_be('CASHIER');                                  -- ONLY the c
   if c.status not in ('ACTIVE','AWAITING_COMPLETION') then raise exception 'Cycle is not running'; end if;
   if s.status = 'RELEASED' then raise exception 'Already released'; end if;
   if s.payout_date > ph_today() then raise exception 'Not ready for release until %', s.payout_date; end if;   -- scheduled never auto-pays
+  if exists (select 1 from cycle_members cm where cm.cycle_id = c.id and not exists (select 1 from contributions k where k.cycle_id = c.id and k.member_id = cm.member_id and k.month = s.month and k.status = 'PAID')) then
+    raise exception 'Waiting for other members'' payment for %', s.month; end if;   -- nobody is paid out before everyone has paid in
   select c.contribution * count(*) into pot from cycle_members where cycle_id = c.id;
   insert into payout_transactions(cycle_id, schedule_id, member_id, scheduled_month, scheduled_date, released_on, amount, cashier_id, reference)
     values (c.id, s.id, s.member_id, s.month, s.payout_date, p_released_on, pot, auth.uid(), nullif(trim(p_ref), ''));   -- unique(cycle, member) blocks duplicates

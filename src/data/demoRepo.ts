@@ -118,6 +118,8 @@ export function makeDemoRepo(user: User): Repo {
       const c = cyc(d, s.cycleId); if (c.status !== 'ACTIVE' && c.status !== 'AWAITING_COMPLETION') throw new Error('Cycle is not running');
       if (s.status === 'RELEASED' || d.payouts.some(p => p.cycleId === c.id && p.memberId === s.memberId)) throw new Error('Already released');
       if (s.date > todayISO()) throw new Error(`Not ready for release until ${s.date}`);
+      const unpaid = (d.cm[c.id] || []).filter(m => !d.contributions.some(k => k.cycleId === c.id && k.memberId === m && k.month === s.month && k.status === 'PAID')).length;
+      if (unpaid) throw new Error(`Waiting for other members' payment (${unpaid} not paid for ${s.month})`);
       const amount = c.contribution * (d.cm[c.id] || []).length;
       d.payouts.push({ id: uid(), cycleId: c.id, slotId: s.id, memberId: s.memberId, scheduledMonth: s.month, scheduledDate: s.date, releasedOn: a.releasedOn, amount, cashierId: user.id, ref: a.ref?.trim() || undefined });
       s.status = 'RELEASED'; refresh(d, c); log(d, 'payout.release', { member: s.memberId, amount, ref: a.ref });

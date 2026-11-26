@@ -1,6 +1,6 @@
 // Pure payout-cycle rules. No UI, no database. Used by the demo repo and by the screens; mirrored by the SQL functions.
 import type { Cycle, CycleStatus, Payout, ScheduleCfg, Slot, SlotStatus, Contribution } from '../types.ts';
-import { addMonths, monthIndex, monthOf, payoutDate } from './dates.ts';
+import { addDays, addMonths, monthIndex, monthOf, payoutDate } from './dates.ts';
 
 export const TARGET_MONTHS = 12; // a target, never a termination limit
 
@@ -116,3 +116,23 @@ export function diffSchedule(before: Slot[], after: Slot[]): Diff {
   };
 }
 export const lastMonth = (slots: Slot[]) => slots.reduce((m, s) => (monthIndex(s.month) > (m ? monthIndex(m) : -1) ? s.month : m), '');
+
+/** What a member sees for a payout. Order of checks:
+ *  released -> RELEASED
+ *  collection month not started yet -> SCHEDULED
+ *  not every member has paid that month -> WAITING_PAYMENTS
+ *  everyone paid, more than a day before the payout date -> WAITING_DATE
+ *  everyone paid, from the day before the payout date -> PROCESSING (the Cashier releases on/after the date)
+ *  RELEASED only ever happens when the Cashier confirms the real release. */
+export type PayoutStage = 'SCHEDULED' | 'WAITING_PAYMENTS' | 'WAITING_DATE' | 'PROCESSING' | 'RELEASED';
+export interface StageInfo { stage: PayoutStage; paid: number; total: number }
+export function payoutStage(slot: Slot, eligible: string[], contributions: Contribution[], today: string): StageInfo {
+  const paidSet = new Set(contributions.filter(c => c.month === slot.month && c.status === 'PAID').map(c => c.memberId));
+  const paid = eligible.filter(id => paidSet.has(id)).length, total = eligible.length;
+  if (slot.status === 'RELEASED') return { stage: 'RELEASED', paid, total };
+  if (slot.month > monthOf(today)) return { stage: 'SCHEDULED', paid, total };
+  if (paid < total) return { stage: 'WAITING_PAYMENTS', paid, total };
+  return { stage: today < addDays(slot.date, -1) ? 'WAITING_DATE' : 'PROCESSING', paid, total };
+}
+/** The Cashier may release only when everyone has paid AND the payout date has come. */
+export const canRelease = (i: StageInfo, slot: Slot, today: string) => i.stage === 'PROCESSING' && slot.date <= today;
