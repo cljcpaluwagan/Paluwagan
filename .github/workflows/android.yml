@@ -24,9 +24,33 @@ jobs:
       - run: npm install
       - run: npm test            # payout rules must pass before an APK is built
       - run: npx tsc --noEmit || echo "::warning::TypeScript warnings (build continues)"
+      - name: Native fingerprint (changes only when the APK itself must be reinstalled)
+        run: echo "NATIVE_HASH=$(cat package.json capacitor.config.ts scripts/make-android-icons.py src/assets/logo.png | sha256sum | cut -c1-12)" >> $GITHUB_ENV
       - run: npx vite build
+        env:
+          VITE_NATIVE_HASH: ${{ env.NATIVE_HASH }}
+      - name: Pack the web bundle for over-the-air updates
+        run: cd dist && zip -qr ../dist.zip .
       - run: npx cap add android
       - run: npx cap sync android
+      - name: Align Android build tools with the auto-update plugin (compileSdk 35, AGP 8.7.3, Gradle 8.9). targetSdk, package id and signing are NOT changed.
+        run: |
+          sed -i 's/compileSdkVersion = [0-9]*/compileSdkVersion = 35/' android/variables.gradle
+          sed -i 's#com.android.tools.build:gradle:[0-9.]*#com.android.tools.build:gradle:8.7.3#' android/build.gradle
+          sed -i 's#gradle-[0-9.]*-all.zip#gradle-8.9-all.zip#; s#gradle-[0-9.]*-bin.zip#gradle-8.9-bin.zip#' android/gradle/wrapper/gradle-wrapper.properties
+          grep -n "compileSdkVersion\|targetSdkVersion\|minSdkVersion" android/variables.gradle
+          grep -n "tools.build" android/build.gradle
+          grep -n distributionUrl android/gradle/wrapper/gradle-wrapper.properties
+      - name: Harden the APK (no backup of app data, HTTPS only). Package id and signing are NOT changed.
+        run: |
+          python3 - <<'PY'
+          import re, pathlib
+          f = pathlib.Path('android/app/src/main/AndroidManifest.xml'); t = f.read_text()
+          t = re.sub(r'android:allowBackup="[^"]*"', 'android:allowBackup="false"', t)
+          if 'android:allowBackup' not in t: t = t.replace('<application', '<application android:allowBackup="false"', 1)
+          if 'usesCleartextTraffic' not in t: t = t.replace('<application', '<application android:usesCleartextTraffic="false"', 1)
+          f.write_text(t); print(re.findall(r'<application[^>]*>', t)[0][:300])
+          PY
       - name: Apply Paluwagan logo (launcher icon + splash images only; package id and signing are untouched)
         run: pip install pillow && python3 scripts/make-android-icons.py
       - name: Stamp version (higher build number = update available)
@@ -45,13 +69,25 @@ jobs:
             echo "No signing secrets set: using the bundled signing/paluwagan-ci.keystore (fine for testing, replace for real use)."
             echo "KS_FILE=$GITHUB_WORKSPACE/signing/paluwagan-ci.keystore" >> $GITHUB_ENV; echo "KS_PW=paluwagan-ci" >> $GITHUB_ENV; echo "KS_AL=paluwagan" >> $GITHUB_ENV
           fi
-      - name: Build signed release APK
+      - name: Build signed release APK (falls back to a build without the auto-update plugin if needed)
+        shell: bash
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew assembleRelease \
-            -Pandroid.injected.signing.store.file="$KS_FILE" -Pandroid.injected.signing.store.password="$KS_PW" \
-            -Pandroid.injected.signing.key.alias="$KS_AL" -Pandroid.injected.signing.key.password="$KS_PW"
+          ARGS=(-Pandroid.injected.signing.store.file="$KS_FILE" -Pandroid.injected.signing.store.password="$KS_PW" -Pandroid.injected.signing.key.alias="$KS_AL" -Pandroid.injected.signing.key.password="$KS_PW")
+          if ! ./gradlew assembleRelease "${ARGS[@]}" 2>&1 | tee ../build.log; then
+            { echo "### Why the build WITH the auto-update plugin failed"; echo '```'; { grep -A30 "What went wrong" ../build.log | head -60 || true; }; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+            echo "::warning::Build with the auto-update plugin failed (reason is in the run summary). Rebuilding WITHOUT it so you still get an APK."
+            sed -i '/capgo/Id' capacitor.settings.gradle app/capacitor.build.gradle
+            python3 - <<'PY'
+          import json, pathlib
+          f = pathlib.Path('app/src/main/assets/capacitor.plugins.json')
+          if f.exists():
+              f.write_text(json.dumps([x for x in json.loads(f.read_text()) if 'capgo' not in json.dumps(x).lower()], indent=2))
+          PY
+            echo "NATIVE_HASH=ffff$(printf '%08x' ${{ github.run_number }})" >> "$GITHUB_ENV"   # makes every release ask for an APK update while the plugin is off
+            ./gradlew clean assembleRelease "${ARGS[@]}"
+          fi
           cp app/build/outputs/apk/release/app-release.apk ../paluwagan.apk
       - name: Verify launcher icon inside the APK
         run: |
@@ -72,8 +108,11 @@ jobs:
         with:
           tag_name: build-${{ github.run_number }}
           name: Paluwagan v1.0.${{ github.run_number }}
-          body: Automatic build ${{ github.run_number }} from ${{ github.sha }}
+          body: |
+            Automatic build ${{ github.run_number }} from ${{ github.sha }}
+            native:${{ env.NATIVE_HASH }}
           files: |
             paluwagan.apk
             icon-in-apk.png
+            dist.zip
           make_latest: true
